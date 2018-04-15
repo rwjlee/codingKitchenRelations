@@ -1,4 +1,4 @@
-from entities import Company, Club, Person, League, City, Department, State, Exchange, Listing, Job
+from entities import Company, Club, Person, League, City, Department, State, Exchange, Listing, Job, Address
 import requests, json
 from pprint import pprint
 from base import DbManager
@@ -22,6 +22,8 @@ def get_state(url):
 
         db.save(state)
 
+    return state
+
 def get_city(url):
     city = None
     try:
@@ -30,11 +32,13 @@ def get_city(url):
         city = City()
         json_data = get_json(url)
         city.parse_json(json_data)
-
-        state = get_state(json_data['state'])
+        state_url = json_data['state']
+        print("-----in get city: {} ".format(state_url))
+        state = get_state(state_url)
+        print("in get city: {} ".format(state.name))
         city.state = state
         db.save(city)
-
+    
     return city
 
 def get_exchange(url):
@@ -103,6 +107,22 @@ def get_department(url):
 
     return department
 
+def get_job(person, department, active):
+    pid_to_did = str(person.id) + '_' + str(department.id)
+    job = None
+    try:
+        job = db.open().query(Job).filter(Job.pid_to_did == pid_to_did).one()
+        if job.active != active:
+            job.active = active
+        db.update(job)
+    except:
+        job = Job()
+        job.pid_to_did = pid_to_did
+        job.person = person
+        job.department = department
+        job.active = active
+        db.save(job)
+    return job
 
 def get_person(url):
     person = None
@@ -116,25 +136,62 @@ def get_person(url):
 
         current_job_url = json_data['current_job']
         if current_job_url:
-            current_job = Job()
             department = get_department(current_job_url)
-
-            current_job.department = department
-            current_job.person = person
-            current_job.active = 1
-            db.save(current_job)
+            current_job = get_job(person, department, 1)
 
         for past_job_url in json_data['employment_history']:
             
-            past_job = Job()
             department = get_department(past_job_url)
-            
-            past_job.department = department
-            past_job.person = person
-            past_job.active = 0
-            db.save(past_job)
+            past_job = get_job(person, department, 0)
+
+        current_address = json_data['current_address']
+        if current_address:
+            city = get_city_from_address(current_address)
+            address = get_address(person, city, 1)
+
+        for past_address in json_data['past_addresses']:
+            city = get_city_from_address(past_address)
+            address = get_address(person, city, 0)
 
     return person
+
+def get_city_from_address(address):
+    base_state_url = 'http://data.coding.kitchen/api/state/'
+    state_url = base_state_url + address['state']
+    state = get_state(state_url)
+    city_name = address['city']
+    zip_code = address['zip']
+    city = None
+    try:
+        city = db.open().query(City).filter((City.name == city_name) & (City.state == state)).one()
+    except:
+        state_json = get_json(state_url)
+        print(state_json['name'])
+        for city_url in state_json['cities']:
+            if get_json(city_url)['zipcode']==zip_code:
+                print(city_name + city_url)
+                city = get_city(city_url)
+                return city
+
+    return city
+
+def get_address(person, city, active):
+    pid_to_cid = str(person.id) + '_' + str(city.id)
+    address = None
+    try:
+        address = db.open().query(Address).filter(Address.pid_to_cid == pid_to_cid).one()
+        if address.active != active:
+            address.active = active
+        db.update(address)
+    except:
+        address = Address()
+        address.pid_to_cid = pid_to_cid
+        address.person = person
+        address.city = city
+        address.active = active
+        db.save(address)
+    return address
+    
 
 # exchange_url = "http://data.coding.kitchen/api/exchange/1"
 # exchange = get_exchange(exchange_url)
@@ -145,9 +202,11 @@ def get_person(url):
 # department = get_department(department_url)
 # print(type(department))
 
-
 person_url = "http://data.coding.kitchen/api/person/1"
 person = get_person(person_url)
 
 person_url = "http://data.coding.kitchen/api/person/2"
+person = get_person(person_url)
+
+person_url = "http://data.coding.kitchen/api/person/3"
 person = get_person(person_url)

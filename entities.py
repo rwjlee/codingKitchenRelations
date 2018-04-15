@@ -82,7 +82,7 @@ class Job(Base):
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key = True)
 
-    # pid_to_did = Column(String, unique = True)
+    pid_to_did = Column(String, unique = True)
     
     department_id = Column(Integer, ForeignKey('departments.id'))
     department = relationship('Department', backref = inverse_relationship('has_employee'))
@@ -114,6 +114,23 @@ class Person(Base):
         self.first = json_data['first']
         self.gender = json_data['gender']
 
+class Address(Base):
+    __tablename__ = 'addresses'
+    id = Column(Integer, primary_key = True)
+    pid_to_cid = Column(String, unique = True)
+
+    person_id = Column(Integer, ForeignKey('people.id'))
+    person = relationship('Person', backref = inverse_relationship('lives_at'))
+
+    city_id = Column(Integer, ForeignKey('cities.id'))
+    city = relationship('City', backref = inverse_relationship('has_resident'))
+
+    active = Column(Integer)
+
+    created_at = Column(DateTime, default = func.now())
+    updated_at = Column(DateTime, default = func.now(), onupdate=func.now())
+    
+
 class Club(Base):
     __tablename__ = 'clubs'
     id = Column(Integer, primary_key=True)
@@ -132,8 +149,6 @@ class Club(Base):
         # self.leauge_id = json_data['league']
         # self.city_id = json_data['city']
 
-
- 
 
 class League(Base):
     __tablename__ = 'leagues'
@@ -159,9 +174,11 @@ class City(Base):
     api = Column(String, unique=True)
     name = Column(String)
     population = Column(Integer)
-    # state = Column(String)
     is_capital = Column(Boolean)
-    
+
+    state_id = Column(Integer, ForeignKey('states.id'))
+    state = relationship('State', backref = inverse_relationship('has_cities'))
+
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
@@ -169,9 +186,7 @@ class City(Base):
         self.api = json_data['api']
         self.name = json_data['name']
         self.population = json_data['population']
-        # self.state = json_data['state']
         self.is_capital = json_data['is_capital']
-
 
 class State(Base):
     __tablename__ = 'states'
