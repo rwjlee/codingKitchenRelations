@@ -1,4 +1,4 @@
-from entities import Company, Club, Person, League, City, Department, State, Exchange, Listing
+from entities import Company, Club, Person, League, City, Department, State, Exchange, Listing, Job
 import requests, json
 from pprint import pprint
 from base import DbManager
@@ -103,11 +103,51 @@ def get_department(url):
 
     return department
 
+
+def get_person(url):
+    person = None
+    try:
+        person = db.open().query(Person).filter(Person.api == url).one()
+    except:
+        person = Person()
+        json_data = get_json(url)
+        person.parse_json(json_data)
+        db.save(person)
+
+        current_job_url = json_data['current_job']
+        if current_job_url:
+            current_job = Job()
+            department = get_department(current_job_url)
+
+            current_job.department = department
+            current_job.person = person
+            current_job.active = 1
+            db.save(current_job)
+
+        for past_job_url in json_data['employment_history']:
+            
+            past_job = Job()
+            department = get_department(past_job_url)
+            
+            past_job.department = department
+            past_job.person = person
+            past_job.active = 0
+            db.save(past_job)
+
+    return person
+
 # exchange_url = "http://data.coding.kitchen/api/exchange/1"
 # exchange = get_exchange(exchange_url)
 # print(type(exchange))
 
 
-department_url = "http://data.coding.kitchen/api/department/18"
-department = get_department(department_url)
-print(type(department))
+# department_url = "http://data.coding.kitchen/api/department/18"
+# department = get_department(department_url)
+# print(type(department))
+
+
+person_url = "http://data.coding.kitchen/api/person/1"
+person = get_person(person_url)
+
+person_url = "http://data.coding.kitchen/api/person/2"
+person = get_person(person_url)

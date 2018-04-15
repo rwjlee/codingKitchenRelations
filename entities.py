@@ -78,6 +78,42 @@ class Exchange(Base):
         self.name = json_data['name']
         self.address = json_data['address']
 
+class Job(Base):
+    __tablename__ = 'jobs'
+    id = Column(Integer, primary_key = True)
+
+    # pid_to_did = Column(String, unique = True)
+    
+    department_id = Column(Integer, ForeignKey('departments.id'))
+    department = relationship('Department', backref = inverse_relationship('has_employee'))
+
+    person_id = Column(Integer, ForeignKey('people.id'))
+    person = relationship('Person', backref = inverse_relationship('works_at'))
+
+    active = Column(Integer)
+
+    created_at = Column(DateTime, default = func.now())
+    updated_at = Column(DateTime, default = func.now(), onupdate=func.now())
+
+
+class Person(Base):
+    __tablename__ = 'people'
+    id = Column(Integer, primary_key=True)
+
+    api = Column(String, unique=True)
+    last = Column(String)
+    first = Column(String)
+    gender = Column(String)
+
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    def parse_json(self, json_data):
+        self.api = json_data['api']
+        self.last = json_data['last']
+        self.first = json_data['first']
+        self.gender = json_data['gender']
+
 class Club(Base):
     __tablename__ = 'clubs'
     id = Column(Integer, primary_key=True)
@@ -96,23 +132,8 @@ class Club(Base):
         # self.leauge_id = json_data['league']
         # self.city_id = json_data['city']
 
-class Person(Base):
-    __tablename__ = 'people'
-    id = Column(Integer, primary_key=True)
 
-    api = Column(String, unique=True)
-    last = Column(String)
-    first = Column(String)
-    gender = Column(String)
-
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    
-    def parse_json(self, json_data):
-        self.api = json_data['api']
-        self.last = json_data['last']
-        self.first = json_data['first']
-        self.gender = json_data['gender']  
+ 
 
 class League(Base):
     __tablename__ = 'leagues'
